@@ -1,0 +1,1020 @@
+% Food Delivery Database Project
+% LaTeX Template for Overleaf
+% Based on professor's requirements
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[italian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{booktabs}
+
+% Imposta lo stile per il codice SQL
+\lstset{
+  language=SQL,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{red},
+  commentstyle=\color{green!60!black},
+  morecomment=[l][\color{magenta}]{\#},
+  breaklines=true,
+  showstringspaces=false,
+  frame=single,
+  tabsize=2
+}
+
+% Personalizzazione dei margini
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\LARGE \textbf{Sistema di Food Delivery}}\\[1cm]
+    {\Large Progetto di Basi di Dati}\\[1cm]
+    
+    \vfill
+    
+    {\large Anno Accademico 2024/2025}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduzione}
+Si intende realizzare una base di dati che serva da supporto a un'applicazione di food delivery. L'obiettivo del database è gestire l'intero processo di ordinazione e consegna di cibo, tenendo traccia di utenti, ristoranti, prodotti, ordini, rider e recensioni. Il sistema permetterà agli utenti di effettuare ordini da vari ristoranti, ai ristoranti di gestire i propri menu e ordini, e ai rider di gestire le consegne.
+
+\section{Requisiti della base di dati}
+Dell'utente si vogliono memorizzare i dati anagrafici (nome, cognome, email, password, telefono, data di nascita), la data di registrazione e lo stato dell'account. Ogni utente può avere uno o più indirizzi associati al proprio profilo.
+
+Per quanto riguarda l'indirizzo, si memorizzano via, civico, CAP, città, provincia, nazione, e opzionalmente latitudine e longitudine per facilitare la geolocalizzazione. Ogni indirizzo può avere un'etichetta (es. "Casa", "Ufficio") e un flag che indica se è l'indirizzo predefinito per l'utente.
+
+Del ristorante si vogliono conoscere nome, descrizione, contatti (telefono, email, sito web), orari di apertura e chiusura, giorni di apertura, tempo medio di consegna, costo di consegna base, ordine minimo, stato, data di registrazione, indirizzo e tipo di cucina. Ogni ristorante ha un proprietario che è un utente registrato nel sistema.
+
+I prodotti offerti dai ristoranti includono nome, descrizione, prezzo, disponibilità, categoria e riferimento al ristorante che li offre.
+
+Gli utenti possono registrare diversi metodi di pagamento, di cui si memorizza il tipo (carta di credito, PayPal, contanti, buoni pasto), il titolare, il numero mascherato per motivi di sicurezza, il token di pagamento e un flag che indica se è il metodo predefinito.
+
+Per i rider, si memorizzano dati anagrafici, tipo di veicolo utilizzato, eventuale targa, stato di attività (disponibile, in consegna, offline) e indirizzo.
+
+Il sistema tiene traccia degli ordini, memorizzando data, costo totale, costo di consegna, IVA applicata, note, data di consegna prevista e effettiva, utente che ha effettuato l'ordine, ristorante, indirizzo di consegna, metodo di pagamento, rider assegnato e stato dell'ordine.
+
+Ogni ordine è composto da uno o più dettagli, che collegano i prodotti ordinati all'ordine stesso, specificando quantità, prezzo unitario ed eventuali note.
+
+Gli utenti possono lasciare recensioni sui ristoranti e sui rider dopo aver completato un ordine. Di queste recensioni si memorizzano valutazione (da 1 a 5 stelle), commento e data.
+
+Infine, il sistema gestisce le notifiche agli utenti, tenendo traccia di titolo, messaggio, tipo (relativo a ordine o di sistema), data di creazione, stato di lettura e data di lettura.
+
+\section{Operazioni da effettuare sul database}
+\begin{itemize}[label=$\bullet$]
+    \item Registrazione di nuovi utenti con validazione dei dati
+    \item Aggiunta, modifica e rimozione di indirizzi degli utenti
+    \item Inserimento e aggiornamento di ristoranti e relativi prodotti
+    \item Creazione di nuovi ordini con selezione di prodotti, indirizzo di consegna e metodo di pagamento
+    \item Aggiornamento dello stato degli ordini durante il loro ciclo di vita
+    \item Assegnazione automatica o manuale dei rider agli ordini
+    \item Registrazione di recensioni su ristoranti e rider
+    \item Generazione di notifiche per eventi rilevanti (es. cambio stato ordine)
+    \item Ricerca di ristoranti per tipo di cucina, valutazione o località
+    \item Estrazione di reportistica su ordini, ristoranti più popolari e prodotti più venduti
+    \item Gestione di utenti, permessi e ruoli (amministratore, ristoratore, cliente, rider)
+\end{itemize}
+
+\section{Glossario dei termini}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{2.5cm}|p{6cm}|p{2cm}|p{3.5cm}|}
+\hline
+\textbf{Termine} & \textbf{Definizione} & \textbf{Sinonimi} & \textbf{Collegamento} \\
+\hline
+Utente & Persona registrata che utilizza il sistema per ordinare cibo & Cliente & Indirizzo, Ordine, Recensione, Metodo Pagamento \\
+\hline
+Ristorante & Esercizio commerciale che offre prodotti alimentari tramite la piattaforma & - & Prodotto, Ordine, Recensione \\
+\hline
+Prodotto & Articolo alimentare disponibile per l'ordinazione & Piatto & Ristorante, Dettaglio Ordine \\
+\hline
+Ordine & Richiesta di acquisto e consegna di uno o più prodotti & - & Utente, Ristorante, Rider, Dettaglio Ordine, Recensione \\
+\hline
+Dettaglio Ordine & Elemento di un ordine che specifica prodotto, quantità e prezzo & Voce dell'ordine & Ordine, Prodotto \\
+\hline
+Rider & Persona che effettua la consegna degli ordini & Fattorino & Ordine, Recensione \\
+\hline
+Recensione & Valutazione e commento su un ristorante o rider & Feedback & Utente, Ristorante, Rider, Ordine \\
+\hline
+Stato Ordine & Fase del ciclo di vita di un ordine & - & Ordine \\
+\hline
+Metodo Pagamento & Modalità con cui l'utente paga l'ordine & - & Utente, Ordine \\
+\hline
+Indirizzo & Localizzazione fisica per la consegna & - & Utente, Ristorante, Rider, Ordine \\
+\hline
+Notifica & Messaggio inviato all'utente per comunicare eventi rilevanti & - & Utente, Ordine \\
+\hline
+\end{tabular}
+\caption{Glossario dei termini}
+\end{table}
+
+\section{Suddivisione del testo in frasi omogenee}
+\begin{itemize}
+\item \textbf{Frasi sugli utenti:}\\
+"Dell'utente si vogliono memorizzare i dati anagrafici (nome, cognome, email, password, telefono, data di nascita), la data di registrazione e lo stato dell'account."\\
+"Ogni utente può avere uno o più indirizzi associati al proprio profilo."\\
+"Gli utenti possono registrare diversi metodi di pagamento, di cui si memorizza il tipo, il titolare, il numero mascherato, il token di pagamento e un flag che indica se è il metodo predefinito."\\
+"Gli utenti possono lasciare recensioni sui ristoranti e sui rider dopo aver completato un ordine."
+
+\item \textbf{Frasi sugli indirizzi:}\\
+"Per quanto riguarda l'indirizzo, si memorizzano via, civico, CAP, città, provincia, nazione, e opzionalmente latitudine e longitudine per facilitare la geolocalizzazione."\\
+"Ogni indirizzo può avere un'etichetta (es. "Casa", "Ufficio") e un flag che indica se è l'indirizzo predefinito per l'utente."
+
+\item \textbf{Frasi sui ristoranti:}\\
+"Del ristorante si vogliono conoscere nome, descrizione, contatti (telefono, email, sito web), orari di apertura e chiusura, giorni di apertura, tempo medio di consegna, costo di consegna base, ordine minimo, stato, data di registrazione, indirizzo e tipo di cucina."\\
+"Ogni ristorante ha un proprietario che è un utente registrato nel sistema."
+
+\item \textbf{Frasi sui prodotti:}\\
+"I prodotti offerti dai ristoranti includono nome, descrizione, prezzo, disponibilità, categoria e riferimento al ristorante che li offre."
+
+\item \textbf{Frasi sui rider:}\\
+"Per i rider, si memorizzano dati anagrafici, tipo di veicolo utilizzato, eventuale targa, stato di attività (disponibile, in consegna, offline) e indirizzo."
+
+\item \textbf{Frasi sugli ordini:}\\
+"Il sistema tiene traccia degli ordini, memorizzando data, costo totale, costo di consegna, IVA applicata, note, data di consegna prevista e effettiva, utente che ha effettuato l'ordine, ristorante, indirizzo di consegna, metodo di pagamento, rider assegnato e stato dell'ordine."
+
+\item \textbf{Frasi sui dettagli degli ordini:}\\
+"Ogni ordine è composto da uno o più dettagli, che collegano i prodotti ordinati all'ordine stesso, specificando quantità, prezzo unitario ed eventuali note."
+
+\item \textbf{Frasi sulle recensioni:}\\
+"Gli utenti possono lasciare recensioni sui ristoranti e sui rider dopo aver completato un ordine. Di queste recensioni si memorizzano valutazione (da 1 a 5 stelle), commento e data."
+
+\item \textbf{Frasi sulle notifiche:}\\
+"Infine, il sistema gestisce le notifiche agli utenti, tenendo traccia di titolo, messaggio, tipo (relativo a ordine o di sistema), data di creazione, stato di lettura e data di lettura."
+\end{itemize}
+
+\section{Diagramma Entity-Relationship}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{er_diagram.png}
+\caption{Diagramma Entity-Relationship del sistema Food Delivery}
+\end{figure}
+
+\textit{Nota: Il diagramma ER dovrebbe essere creato come immagine separata e incluso qui. Si consiglia di utilizzare strumenti come draw.io, Lucidchart o anche MySQL Workbench per creare il diagramma e poi esportarlo come immagine.}
+
+\section{Dizionario dei dati (Entità)}
+\begin{longtable}{|p{2.5cm}|p{4cm}|p{5cm}|p{3cm}|}
+\hline
+\textbf{Entità} & \textbf{Descrizione} & \textbf{Attributi} & \textbf{Identificatore} \\
+\hline
+\endhead
+Utente & Utente registrato nel sistema & idUtente, nome, cognome, email, password, telefono, dataNascita, dataRegistrazione, stato & idUtente \\
+\hline
+Indirizzo & Indirizzo fisico per consegne o localizzazione & idIndirizzo, via, civico, cap, città, provincia, nazione, latitudine, longitudine, note & idIndirizzo \\
+\hline
+Ristorante & Esercizio commerciale che offre cibi & idRistorante, nome, descrizione, telefono, email, sitoWeb, orarioApertura, orarioChiusura, giorniApertura, tempoConsegnaMedio, costoConsegnaBase, ordineMinimo, stato, dataRegistrazione, tipoCucina & idRistorante \\
+\hline
+Prodotto & Articolo alimentare in vendita & idProdotto, nome, descrizione, prezzo, disponibile, categoria & idProdotto \\
+\hline
+Metodo\_Pagamento & Modalità di pagamento utente & idMetodoPagamento, tipo, titolare, numeroMascherato, tokenPagamento, predefinito & idMetodoPagamento \\
+\hline
+Rider & Persona che effettua le consegne & idRider, nome, cognome, email, password, telefono, dataNascita, tipoVeicolo, targaVeicolo, statoAttivita, dataRegistrazione & idRider \\
+\hline
+Stato\_Ordine & Stato di avanzamento dell'ordine & idStatoOrdine, nome, descrizione & idStatoOrdine \\
+\hline
+Ordine & Richiesta di acquisto e consegna & idOrdine, dataOrdine, costoTotale, costoConsegna, ivaApplicata, note, dataConsegnaPrevista, dataConsegnaEffettiva & idOrdine \\
+\hline
+Dettaglio\_Ordine & Elemento specifico di un ordine & idDettaglioOrdine, quantità, prezzoUnitario, note & idDettaglioOrdine \\
+\hline
+Recensione\_Ristorante & Valutazione di un ristorante & idRecensioneRistorante, valutazione, commento, dataRecensione & idRecensioneRistorante \\
+\hline
+Recensione\_Rider & Valutazione di un rider & idRecensioneRider, valutazione, commento, dataRecensione & idRecensioneRider \\
+\hline
+Notifica & Messaggio di sistema per l'utente & idNotifica, titolo, messaggio, tipo, dataCreazione, letta, dataLettura & idNotifica \\
+\hline
+\end{longtable}
+
+\section{Dizionario dei dati (Relationships)}
+\begin{longtable}{|p{3cm}|p{5cm}|p{4cm}|p{2.5cm}|}
+\hline
+\textbf{Relazione} & \textbf{Descrizione} & \textbf{Entità coinvolte} & \textbf{Attributi} \\
+\hline
+\endhead
+Associazione\_Indirizzo & Associa indirizzi agli utenti & Utente, Indirizzo & etichetta, predefinito \\
+\hline
+Proprietà & Indica il proprietario di un ristorante & Utente, Ristorante & - \\
+\hline
+Ubicazione\_Ristorante & Collega un ristorante al suo indirizzo & Ristorante, Indirizzo & - \\
+\hline
+Offerta & Collegamento tra ristorante e prodotti offerti & Ristorante, Prodotto & - \\
+\hline
+Possesso\_Pagamento & Collega utenti ai loro metodi di pagamento & Utente, Metodo\_Pagamento & - \\
+\hline
+Residenza\_Rider & Collega un rider al suo indirizzo & Rider, Indirizzo & - \\
+\hline
+Effettuazione & Collega utente all'ordine effettuato & Utente, Ordine & - \\
+\hline
+Provenienza & Collega ordine al ristorante da cui proviene & Ristorante, Ordine & - \\
+\hline
+Consegna\_A & Indica l'indirizzo di consegna dell'ordine & Ordine, Indirizzo & - \\
+\hline
+Pagamento & Collega ordine al metodo di pagamento usato & Ordine, Metodo\_Pagamento & - \\
+\hline
+Consegna\_Da & Indica il rider che effettua la consegna & Ordine, Rider & - \\
+\hline
+Stato & Indica lo stato attuale dell'ordine & Ordine, Stato\_Ordine & - \\
+\hline
+Composizione & Collega ordine ai suoi dettagli & Ordine, Dettaglio\_Ordine & - \\
+\hline
+Riferimento & Collega dettaglio ordine al prodotto & Dettaglio\_Ordine, Prodotto & - \\
+\hline
+Valutazione\_Ristorante & Collega recensione a ristorante e utente & Utente, Ristorante, Recensione\_Ristorante & - \\
+\hline
+Valutazione\_Rider & Collega recensione a rider e utente & Utente, Rider, Recensione\_Rider & - \\
+\hline
+Ricezione & Collega utente alle notifiche ricevute & Utente, Notifica & - \\
+\hline
+Riferimento\_Ordine & Collega notifica all'ordine a cui si riferisce & Notifica, Ordine & - \\
+\hline
+Riferimento\_Recensione & Collega recensione all'ordine a cui si riferisce & Recensione\_Ristorante/Recensione\_Rider, Ordine & - \\
+\hline
+\end{longtable}
+
+\section{Vincoli non esprimibili graficamente}
+\begin{itemize}
+    \item I rider possono essere assegnati solo a ordini nello stato "pronto per consegna".
+    \item Un utente può recensire un ristorante o un rider solo dopo che l'ordine è stato consegnato.
+    \item La data di consegna effettiva di un ordine non può essere precedente alla data dell'ordine.
+    \item La valutazione nelle recensioni deve essere compresa tra 1 e 5.
+    \item Un utente non può avere due indirizzi con la stessa etichetta.
+    \item Per ogni utente, può esistere al massimo un indirizzo predefinito.
+    \item Per ogni utente, può esistere al massimo un metodo di pagamento predefinito.
+    \item Il prezzo dei prodotti deve essere maggiore di zero.
+    \item L'importo dell'ordine deve essere almeno pari all'ordine minimo del ristorante.
+\end{itemize}
+
+\section{Considerazioni generali}
+Nel progettare il database per il sistema di food delivery, si è scelto di separare le recensioni per ristoranti e rider in due entità distinte per maggiore flessibilità e per consentire attributi e vincoli specifici per ciascun tipo di recensione.
+
+Si è inoltre deciso di utilizzare un'entità separata per gli stati degli ordini anziché un semplice attributo enumerato, per facilitare l'aggiunta di nuovi stati in futuro senza modificare la struttura del database e per mantenere le descrizioni degli stati.
+
+La relazione tra utenti e indirizzi è stata modellata come una relazione molti a molti tramite la tabella di associazione \texttt{utente\_indirizzo}, permettendo così a un utente di avere più indirizzi e, teoricamente, a più utenti di condividere lo stesso indirizzo (ad esempio per famiglie o coinquilini).
+
+Per quanto riguarda i metodi di pagamento, si è scelto di memorizzare solo informazioni parziali delle carte di credito per questioni di sicurezza, utilizzando token di pagamento forniti da servizi di pagamento di terze parti per le transazioni effettive.
+
+Infine, il sistema di notifiche è stato progettato per essere versatile, consentendo sia notifiche legate a ordini specifici (es. "Il tuo ordine è stato consegnato") sia notifiche di sistema generiche (es. "Benvenuto nel sistema").
+
+\section{Tavola dei volumi}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Concetto} & \textbf{Tipo} & \textbf{Volume} \\
+\hline
+Utente & E & 100.000 \\
+\hline
+Indirizzo & E & 150.000 \\
+\hline
+Ristorante & E & 2.000 \\
+\hline
+Prodotto & E & 100.000 \\
+\hline
+Metodo\_Pagamento & E & 150.000 \\
+\hline
+Rider & E & 5.000 \\
+\hline
+Stato\_Ordine & E & 8 \\
+\hline
+Ordine & E & 1.000.000 \\
+\hline
+Dettaglio\_Ordine & E & 3.000.000 \\
+\hline
+Recensione\_Ristorante & E & 500.000 \\
+\hline
+Recensione\_Rider & E & 300.000 \\
+\hline
+Notifica & E & 5.000.000 \\
+\hline
+Associazione\_Indirizzo & R & 150.000 \\
+\hline
+Proprietà & R & 2.000 \\
+\hline
+Ubicazione\_Ristorante & R & 2.000 \\
+\hline
+Offerta & R & 100.000 \\
+\hline
+Possesso\_Pagamento & R & 150.000 \\
+\hline
+Residenza\_Rider & R & 5.000 \\
+\hline
+Effettuazione & R & 1.000.000 \\
+\hline
+Provenienza & R & 1.000.000 \\
+\hline
+Consegna\_A & R & 1.000.000 \\
+\hline
+Pagamento & R & 1.000.000 \\
+\hline
+Consegna\_Da & R & 1.000.000 \\
+\hline
+Stato & R & 1.000.000 \\
+\hline
+Composizione & R & 3.000.000 \\
+\hline
+Riferimento & R & 3.000.000 \\
+\hline
+Valutazione\_Ristorante & R & 500.000 \\
+\hline
+Valutazione\_Rider & R & 300.000 \\
+\hline
+Ricezione & R & 5.000.000 \\
+\hline
+Riferimento\_Ordine & R & 3.000.000 \\
+\hline
+\end{tabular}
+\caption{Tavola dei volumi}
+\end{table}
+
+\section{Operazioni di interesse}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|c|c|}
+\hline
+\textbf{Operazione} & \textbf{Tipo} & \textbf{Frequenza} \\
+\hline
+Registrazione di un nuovo utente & Interattiva & 100/giorno \\
+\hline
+Creazione di un nuovo ordine & Interattiva & 5.000/giorno \\
+\hline
+Ricerca di ristoranti per tipo di cucina o zona & Interattiva & 20.000/giorno \\
+\hline
+Aggiornamento dello stato di un ordine & Interattiva & 15.000/giorno \\
+\hline
+Assegnazione di un rider a un ordine & Interattiva & 5.000/giorno \\
+\hline
+Inserimento di una recensione & Interattiva & 2.000/giorno \\
+\hline
+Visualizzazione dello storico ordini di un utente & Interattiva & 10.000/giorno \\
+\hline
+Calcolo dei ricavi giornalieri per ristorante & Batch & 1/giorno \\
+\hline
+Analisi delle valutazioni dei ristoranti & Batch & 1/settimana \\
+\hline
+Generazione report sui prodotti più venduti & Batch & 1/settimana \\
+\hline
+\end{tabular}
+\caption{Operazioni di interesse}
+\end{table}
+
+\section{Analisi delle ridondanze}
+Nel modello concettuale sono presenti alcune possibili ridondanze che vanno analizzate per determinare se mantenerle o eliminarle.
+
+\subsection{Ridondanza 1: Costo totale dell'ordine}
+Il costo totale di un ordine è potenzialmente derivabile dalla somma dei prezzi unitari moltiplicati per le quantità in Dettaglio\_Ordine, più il costo di consegna e l'IVA.
+
+\textbf{Analisi:} Calcoliamo il numero di accessi per ottenere il costo totale di un ordine.
+
+\textbf{Con ridondanza:}
+\begin{itemize}
+    \item Accesso diretto al campo costoTotale in Ordine: 1 accesso
+\end{itemize}
+
+\textbf{Senza ridondanza:}
+\begin{itemize}
+    \item Accesso a Ordine per ottenere costoConsegna e ivaApplicata: 1 accesso
+    \item Accesso a tutti i Dettaglio\_Ordine relativi all'ordine: N accessi (dove N è il numero medio di dettagli per ordine, stimato a 3)
+\end{itemize}
+
+\textbf{Decisione:} Mantenere la ridondanza del costoTotale, dato che l'operazione di visualizzazione degli ordini è molto frequente (10.000/giorno) e calcolare il totale ogni volta richiederebbe accessi multipli al database.
+
+\subsection{Ridondanza 2: Tempo medio di consegna dei ristoranti}
+Il tempo medio di consegna di un ristorante potrebbe essere calcolato sulla base dei tempi effettivi di consegna degli ordini precedenti.
+
+\textbf{Analisi:} Per calcolare il tempo previsto di consegna di un nuovo ordine.
+
+\textbf{Con ridondanza:}
+\begin{itemize}
+    \item Accesso diretto al campo tempoConsegnaMedio in Ristorante: 1 accesso
+\end{itemize}
+
+\textbf{Senza ridondanza:}
+\begin{itemize}
+    \item Accesso agli ultimi M ordini del ristorante: M accessi (dove M è il numero di ordini considerati per la media)
+    \item Calcolo della media dei tempi di consegna: operazione computazionale
+\end{itemize}
+
+\textbf{Decisione:} Mantenere la ridondanza del tempoConsegnaMedio, poiché viene utilizzato frequentemente quando si crea un nuovo ordine (5.000/giorno) e il calcolo dinamico richiederebbe molti accessi al database.
+
+\section{Eliminazione delle generalizzazioni}
+Nel modello proposto non sono presenti generalizzazioni esplicite. Tuttavia, si potrebbe considerare le entità Recensione\_Ristorante e Recensione\_Rider come specializzazioni di un'entità generale "Recensione".
+
+Dato che:
+\begin{itemize}
+    \item Le due entità hanno attributi simili (valutazione, commento, dataRecensione)
+    \item Ma hanno relazioni con entità diverse (Ristorante vs Rider)
+    \item E potrebbero avere in futuro attributi specifici diversi
+\end{itemize}
+
+Si decide di mantenere le due entità separate anziché creare una generalizzazione, per maggiore flessibilità e per evitare attributi null quando non pertinenti.
+
+\section{Partizionamento di entità}
+Non si ritiene necessario partizionare alcuna entità, poiché ciascuna rappresenta un concetto ben definito con attributi che si riferiscono a un unico aspetto del dominio applicativo.
+
+\section{Eliminazione attributi multivalore}
+Non sono presenti attributi multivalore espliciti nel modello proposto. Gli attributi che concettualmente potrebbero essere multivalore (ad esempio, i numeri di telefono di un utente) sono già stati modellati come relazioni uno-a-molti o molti-a-molti (ad esempio, la relazione tra Utente e Indirizzo).
+
+\section{Partizionamento di relationship}
+Non si ritiene necessario partizionare alcuna relazione nel modello proposto. Le relazioni presenti sono tutte ben definite e rappresentano associazioni singole tra entità.
+
+\section{Accorpamento di entità o relationship}
+Non si ritiene necessario accorpare entità o relazioni, poiché il modello attuale è già ben strutturato e rappresenta correttamente i concetti del dominio.
+
+\section{Scelta degli identificatori}
+Per tutte le entità si utilizzano identificatori artificiali auto-incrementanti (idUtente, idRistorante, idProdotto, ecc.), che garantiscono unicità e prestazioni ottimali nelle operazioni di join tra tabelle.
+
+\section{Diagramma E-R Ristrutturato}
+Dopo l'analisi delle ridondanze e le altre considerazioni di progettazione, il diagramma ER rimane sostanzialmente invariato.
+
+\section{Passaggio al modello relazionale}
+Dal diagramma ER ristrutturato, si ottiene il seguente schema logico:
+
+\begin{itemize}
+    \item \textbf{utente}(\underline{idUtente}, nome, cognome, email, password, telefono, dataNascita, dataRegistrazione, stato)
+    \item \textbf{indirizzo}(\underline{idIndirizzo}, via, civico, cap, città, provincia, nazione, latitudine, longitudine, note)
+    \item \textbf{utente\_indirizzo}(\underline{idUtente}, \underline{idIndirizzo}, etichetta, predefinito)\\
+          \textit{FK: idUtente REFERENCES utente, idIndirizzo REFERENCES indirizzo}
+    \item \textbf{ristorante}(\underline{idRistorante}, nome, descrizione, telefono, email, sitoWeb, orarioApertura, orarioChiusura, giorniApertura, tempoConsegnaMedio, costoConsegnaBase, ordineMinimo, stato, dataRegistrazione, idIndirizzo, idProprietario, tipoCucina)\\
+          \textit{FK: idIndirizzo REFERENCES indirizzo, idProprietario REFERENCES utente}
+    \item \textbf{prodotto}(\underline{idProdotto}, nome, descrizione, prezzo, disponibile, categoria, idRistorante)\\
+          \textit{FK: idRistorante REFERENCES ristorante}
+    \item \textbf{metodo\_pagamento}(\underline{idMetodoPagamento}, tipo, titolare, numeroMascherato, tokenPagamento, predefinito, idUtente)\\
+          \textit{FK: idUtente REFERENCES utente}
+    \item \textbf{rider}(\underline{idRider}, nome, cognome, email, password, telefono, dataNascita, tipoVeicolo, targaVeicolo, statoAttivita, dataRegistrazione, idIndirizzo)\\
+          \textit{FK: idIndirizzo REFERENCES indirizzo}
+    \item \textbf{stato\_ordine}(\underline{idStatoOrdine}, nome, descrizione)
+    \item \textbf{ordine}(\underline{idOrdine}, dataOrdine, costoTotale, costoConsegna, ivaApplicata, note, dataConsegnaPrevista, dataConsegnaEffettiva, idUtente, idRistorante, idIndirizzoConsegna, idMetodoPagamento, idRider, idStatoOrdine)\\
+          \textit{FK: idUtente REFERENCES utente, idRistorante REFERENCES ristorante, idIndirizzoConsegna REFERENCES indirizzo, idMetodoPagamento REFERENCES metodo\_pagamento, idRider REFERENCES rider, idStatoOrdine REFERENCES stato\_ordine}
+    \item \textbf{dettaglio\_ordine}(\underline{idDettaglioOrdine}, quantita, prezzoUnitario, note, idOrdine, idProdotto)\\
+          \textit{FK: idOrdine REFERENCES ordine, idProdotto REFERENCES prodotto}
+    \item \textbf{recensione\_ristorante}(\underline{idRecensioneRistorante}, valutazione, commento, dataRecensione, idUtente, idRistorante, idOrdine)\\
+          \textit{FK: idUtente REFERENCES utente, idRistorante REFERENCES ristorante, idOrdine REFERENCES ordine}
+    \item \textbf{recensione\_rider}(\underline{idRecensioneRider}, valutazione, commento, dataRecensione, idUtente, idRider, idOrdine)\\
+          \textit{FK: idUtente REFERENCES utente, idRider REFERENCES rider, idOrdine REFERENCES ordine}
+    \item \textbf{notifica}(\underline{idNotifica}, titolo, messaggio, tipo, dataCreazione, letta, dataLettura, idUtente, idOrdine)\\
+          \textit{FK: idUtente REFERENCES utente, idOrdine REFERENCES ordine}
+\end{itemize}
+
+\section{Schema Logico}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{logical_schema.png}
+\caption{Schema logico del database Food Delivery}
+\end{figure}
+
+\textit{Nota: Lo schema logico dovrebbe essere creato come immagine separata e incluso qui. Si consiglia di utilizzare strumenti come MySQL Workbench per generare il diagramma e poi esportarlo come immagine.}
+
+\section{Normalizzazione}
+Analizziamo le tabelle per verificare che rispettino le forme normali.
+
+\subsection{Prima Forma Normale (1NF)}
+Tutte le tabelle rispettano la 1NF poiché:
+\begin{itemize}
+    \item Ogni colonna contiene valori atomici
+    \item Non ci sono gruppi di valori ripetuti
+    \item Ogni tabella ha una chiave primaria identificata
+\end{itemize}
+
+\subsection{Seconda Forma Normale (2NF)}
+Tutte le tabelle rispettano la 2NF poiché:
+\begin{itemize}
+    \item Sono già in 1NF
+    \item Tutti gli attributi non-chiave dipendono dall'intera chiave primaria
+\end{itemize}
+
+In particolare, per le tabelle con chiave composta come \texttt{utente\_indirizzo}, gli attributi \texttt{etichetta} e \texttt{predefinito} dipendono dalla combinazione di \texttt{idUtente} e \texttt{idIndirizzo}.
+
+\subsection{Terza Forma Normale (3NF)}
+Analizziamo alcune tabelle per verificare che rispettino la 3NF:
+
+\subsubsection{Tabella indirizzo}
+Nella tabella \texttt{indirizzo}, c'è una dipendenza transitiva potenziale: il \texttt{cap} spesso dipende da \texttt{città} e \texttt{provincia}. Tuttavia, ci sono eccezioni (una città può avere più CAP) e il CAP è necessario per indirizzare correttamente. Si decide di mantenere questa struttura per semplicità e per evitare join costosi quando si accede agli indirizzi completi.
+
+\subsubsection{Tabella ordine}
+Nella tabella \texttt{ordine}, il campo \texttt{costoTotale} è derivabile dagli altri dati (dettagli dell'ordine, costo consegna, IVA), ma si decide di mantenerlo come ridondanza controllata per motivi di efficienza, come spiegato nell'analisi delle ridondanze.
+
+\subsubsection{Altre tabelle}
+Le altre tabelle sono in 3NF poiché non presentano dipendenze transitive evidenti.
+
+\section{Progettazione fisica}
+Per ottimizzare le prestazioni del database, si propongono i seguenti indici:
+
+\begin{itemize}
+    \item \textbf{Indice su utente.email e utente.telefono}: Facilita le ricerche dei clienti per contatti e verifica l'unicità dei valori.
+    \item \textbf{Indice su ristorante.tipoCucina}: Ottimizza le ricerche di ristoranti per tipo di cucina, una delle operazioni più frequenti.
+    \item \textbf{Indice su prodotto.categoria e prodotto.idRistorante}: Accelera la ricerca di prodotti per categoria all'interno di un ristorante.
+    \item \textbf{Indice su ordine.idUtente}: Ottimizza la ricerca degli ordini di un utente specifico.
+    \item \textbf{Indice su ordine.idRistorante e ordine.dataOrdine}: Facilita l'analisi degli ordini di un ristorante in un periodo specifico.
+    \item \textbf{Indice su rider.statoAttivita}: Accelera la ricerca di rider disponibili per le consegne.
+    \item \textbf{Indice su recensione\_ristorante.idRistorante}: Ottimizza il calcolo delle valutazioni medie dei ristoranti.
+\end{itemize}
+
+Inoltre, si definiscono le seguenti strategie di ottimizzazione:
+
+\begin{itemize}
+    \item \textbf{Partizionamento della tabella ordine}: Data la grande quantità di ordini previsti, si considera un partizionamento per range sulla data dell'ordine, per migliorare le prestazioni delle query sui dati recenti.
+    \item \textbf{Denormalizzazione strategica}: Si mantengono alcune ridondanze controllate, come il costoTotale negli ordini, per ridurre i join nelle query più frequenti.
+    \item \textbf{Caching delle query frequenti}: Implementare meccanismi di caching per le query più frequenti, come la ricerca di ristoranti per zona o tipo di cucina.
+\end{itemize}
+
+\section{Creazione del database}
+Di seguito riportiamo le principali istruzioni CREATE TABLE, evidenziando gli aspetti più significativi dello schema.
+
+\begin{lstlisting}[caption=Creazione delle principali tabelle]
+-- Tabella utente
+CREATE TABLE IF NOT EXISTS `food_delivery_db`.`utente` (
+  `idUtente` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(45) NOT NULL,
+  `cognome` VARCHAR(45) NOT NULL,
+  `email` VARCHAR(100) NOT NULL,
+  `password` VARCHAR(255) NOT NULL,
+  `telefono` VARCHAR(20) NOT NULL,
+  `dataNascita` DATE NULL,
+  `dataRegistrazione` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `stato` ENUM('attivo', 'sospeso', 'disattivato') NOT NULL DEFAULT 'attivo',
+  PRIMARY KEY (`idUtente`),
+  UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE,
+  UNIQUE INDEX `telefono_UNIQUE` (`telefono` ASC) VISIBLE)
+ENGINE = InnoDB;
+
+-- Tabella ristorante
+CREATE TABLE IF NOT EXISTS `food_delivery_db`.`ristorante` (
+  `idRistorante` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(100) NOT NULL,
+  `descrizione` TEXT NULL,
+  `telefono` VARCHAR(20) NOT NULL,
+  `email` VARCHAR(100) NOT NULL,
+  `sitoWeb` VARCHAR(100) NULL,
+  `orarioApertura` TIME NOT NULL,
+  `orarioChiusura` TIME NOT NULL,
+  `giorniApertura` VARCHAR(45) NOT NULL DEFAULT 'Lun-Dom',
+  `tempoConsegnaMedio` INT NOT NULL DEFAULT 30,
+  `costoConsegnaBase` DECIMAL(5,2) NOT NULL DEFAULT 2.50,
+  `ordineMinimo` DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+  `stato` ENUM('attivo', 'sospeso', 'chiuso') NOT NULL DEFAULT 'attivo',
+  `dataRegistrazione` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `idIndirizzo` INT NOT NULL,
+  `idProprietario` INT NOT NULL,
+  `tipoCucina` VARCHAR(100) NULL,
+  PRIMARY KEY (`idRistorante`),
+  UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE,
+  INDEX `fk_ristorante_indirizzo1_idx` (`idIndirizzo` ASC) VISIBLE,
+  INDEX `fk_ristorante_utente1_idx` (`idProprietario` ASC) VISIBLE,
+  CONSTRAINT `fk_ristorante_indirizzo1`
+    FOREIGN KEY (`idIndirizzo`)
+    REFERENCES `food_delivery_db`.`indirizzo` (`idIndirizzo`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ristorante_utente1`
+    FOREIGN KEY (`idProprietario`)
+    REFERENCES `food_delivery_db`.`utente` (`idUtente`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+-- Tabella ordine
+CREATE TABLE IF NOT EXISTS `food_delivery_db`.`ordine` (
+  `idOrdine` INT NOT NULL AUTO_INCREMENT,
+  `dataOrdine` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `costoTotale` DECIMAL(8,2) NOT NULL,
+  `costoConsegna` DECIMAL(5,2) NOT NULL,
+  `ivaApplicata` DECIMAL(4,2) NOT NULL DEFAULT 10.00,
+  `note` TEXT NULL,
+  `dataConsegnaPrevista` DATETIME NULL,
+  `dataConsegnaEffettiva` DATETIME NULL,
+  `idUtente` INT NOT NULL,
+  `idRistorante` INT NOT NULL,
+  `idIndirizzoConsegna` INT NOT NULL,
+  `idMetodoPagamento` INT NOT NULL,
+  `idRider` INT NULL,
+  `idStatoOrdine` INT NOT NULL,
+  PRIMARY KEY (`idOrdine`),
+  INDEX `fk_ordine_utente1_idx` (`idUtente` ASC) VISIBLE,
+  INDEX `fk_ordine_ristorante1_idx` (`idRistorante` ASC) VISIBLE,
+  INDEX `fk_ordine_indirizzo1_idx` (`idIndirizzoConsegna` ASC) VISIBLE,
+  INDEX `fk_ordine_metodo_pagamento1_idx` (`idMetodoPagamento` ASC) VISIBLE,
+  INDEX `fk_ordine_rider1_idx` (`idRider` ASC) VISIBLE,
+  INDEX `fk_ordine_stato_ordine1_idx` (`idStatoOrdine` ASC) VISIBLE,
+  CONSTRAINT `fk_ordine_utente1`
+    FOREIGN KEY (`idUtente`)
+    REFERENCES `food_delivery_db`.`utente` (`idUtente`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ordine_ristorante1`
+    FOREIGN KEY (`idRistorante`)
+    REFERENCES `food_delivery_db`.`ristorante` (`idRistorante`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ordine_indirizzo1`
+    FOREIGN KEY (`idIndirizzoConsegna`)
+    REFERENCES `food_delivery_db`.`indirizzo` (`idIndirizzo`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ordine_metodo_pagamento1`
+    FOREIGN KEY (`idMetodoPagamento`)
+    REFERENCES `food_delivery_db`.`metodo_pagamento` (`idMetodoPagamento`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ordine_rider1`
+    FOREIGN KEY (`idRider`)
+    REFERENCES `food_delivery_db`.`rider` (`idRider`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_ordine_stato_ordine1`
+    FOREIGN KEY (`idStatoOrdine`)
+    REFERENCES `food_delivery_db`.`stato_ordine` (`idStatoOrdine`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+\end{lstlisting}
+
+\section{Realizzazione delle operazioni}
+In questa sezione presentiamo le implementazioni SQL per alcune delle operazioni più significative.
+
+\subsection{Registrazione di un nuovo utente}
+\begin{lstlisting}[caption=Procedura per registrare un nuovo utente]
+DELIMITER //
+CREATE PROCEDURE `food_delivery_db`.`registra_nuovo_utente`(
+    IN p_nome VARCHAR(45),
+    IN p_cognome VARCHAR(45),
+    IN p_email VARCHAR(100),
+    IN p_password VARCHAR(45),
+    IN p_telefono VARCHAR(20),
+    IN p_dataNascita DATE,
+    OUT p_idUtente INT,
+    OUT p_messaggio VARCHAR(255)
+)
+BEGIN
+    DECLARE v_email_exists INT DEFAULT 0;
+    DECLARE v_telefono_exists INT DEFAULT 0;
+    DECLARE v_errore_generico CONDITION FOR SQLSTATE '45000';
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        -- Gestisce gli errori SQL
+        GET DIAGNOSTICS CONDITION 1
+        @sqlstate = RETURNED_SQLSTATE,
+        @errno = MYSQL_ERRNO,
+        @text = MESSAGE_TEXT;
+        
+        SET p_messaggio = CONCAT('Errore SQL: ', @errno, ' - ', @text);
+        SET p_idUtente = 0;
+        ROLLBACK;
+    END;
+    
+    -- Convalida dei dati di input
+    IF p_nome IS NULL OR p_nome = '' THEN
+        SIGNAL v_errore_generico SET MESSAGE_TEXT = 'Il nome è obbligatorio';
+    END IF;
+    
+    -- Altre validazioni...
+    
+    -- Verifica che email e telefono non siano già in uso
+    SELECT COUNT(*) INTO v_email_exists 
+    FROM `food_delivery_db`.`utente` 
+    WHERE email = p_email;
+    
+    IF v_email_exists > 0 THEN
+        SIGNAL v_errore_generico SET MESSAGE_TEXT = 'Email già in uso';
+    END IF;
+    
+    -- Verifica telefono...
+    
+    -- Inizia la transazione
+    START TRANSACTION;
+    
+    -- Inserisci il nuovo utente
+    INSERT INTO `food_delivery_db`.`utente` 
+        (nome, cognome, email, password, telefono, dataNascita, dataRegistrazione, stato)
+    VALUES 
+        (p_nome, p_cognome, p_email, SHA2(p_password, 256), p_telefono, p_dataNascita, NOW(), 'attivo');
+    
+    SET p_idUtente = LAST_INSERT_ID();
+    
+    -- Crea una notifica di benvenuto
+    INSERT INTO `food_delivery_db`.`notifica` 
+        (titolo, messaggio, tipo, idUtente, idOrdine)
+    VALUES 
+        ('Benvenuto su Food Delivery', 
+         CONCAT('Benvenuto ', p_nome, '! Inizia a ordinare i tuoi piatti preferiti.'), 
+         'sistema', 
+         p_idUtente, 
+         NULL);
+    
+    COMMIT;
+    
+    SET p_messaggio = CONCAT('Utente registrato con successo. ID: ', p_idUtente);
+END //
+DELIMITER ;
+\end{lstlisting}
+
+\subsection{Creazione di un nuovo ordine}
+\begin{lstlisting}[caption=Procedura per creare un nuovo ordine]
+DELIMITER //
+CREATE PROCEDURE `food_delivery_db`.`crea_nuovo_ordine`(
+    IN p_idUtente INT,
+    IN p_idRistorante INT,
+    IN p_idIndirizzoConsegna INT,
+    IN p_idMetodoPagamento INT,
+    OUT p_idOrdine INT
+)
+BEGIN
+    DECLARE v_costo_consegna DECIMAL(5,2);
+    
+    START TRANSACTION;
+    
+    -- Ottieni il costo di consegna dal ristorante
+    SELECT costoConsegnaBase INTO v_costo_consegna
+    FROM `food_delivery_db`.`ristorante`
+    WHERE idRistorante = p_idRistorante;
+    
+    -- Inserisci il nuovo ordine
+    INSERT INTO `food_delivery_db`.`ordine`
+        (dataOrdine, costoTotale, costoConsegna, ivaApplicata, 
+         idUtente, idRistorante, idIndirizzoConsegna, idMetodoPagamento, idStatoOrdine)
+    VALUES
+        (NOW(), v_costo_consegna, v_costo_consegna, 10.00, 
+         p_idUtente, p_idRistorante, p_idIndirizzoConsegna, p_idMetodoPagamento, 1);
+    
+    -- Salva l'ID dell'ordine creato
+    SET p_idOrdine = LAST_INSERT_ID();
+    
+    COMMIT;
+END //
+DELIMITER ;
+\end{lstlisting}
+
+\subsection{Aggiornamento dello stato di un ordine}
+\begin{lstlisting}[caption=Procedura per aggiornare lo stato di un ordine]
+DELIMITER //
+CREATE PROCEDURE `food_delivery_db`.`aggiorna_stato_ordine`(
+    IN p_idOrdine INT,
+    IN p_nuovo_stato VARCHAR(45),
+    OUT p_result VARCHAR(100)
+)
+BEGIN
+    DECLARE v_id_stato_nuovo INT;
+    
+    START TRANSACTION;
+    
+    -- Ottieni l'id del nuovo stato
+    SELECT idStatoOrdine INTO v_id_stato_nuovo
+    FROM `food_delivery_db`.`stato_ordine`
+    WHERE nome = p_nuovo_stato;
+    
+    -- Aggiorna lo stato dell'ordine
+    UPDATE `food_delivery_db`.`ordine`
+    SET idStatoOrdine = v_id_stato_nuovo
+    WHERE idOrdine = p_idOrdine;
+    
+    SET p_result = CONCAT('Stato dell\'ordine #', p_idOrdine, ' aggiornato a ', p_nuovo_stato);
+    COMMIT;
+END //
+DELIMITER ;
+\end{lstlisting}
+
+\subsection{Ricerca di ristoranti per tipo di cucina}
+\begin{lstlisting}[caption=Query per ricercare ristoranti per tipo di cucina]
+-- Query per trovare ristoranti con un determinato tipo di cucina e le loro valutazioni
+SELECT 
+    r.idRistorante,
+    r.nome,
+    r.tipoCucina,
+    r.orarioApertura,
+    r.orarioChiusura,
+    r.costoConsegnaBase,
+    r.ordineMinimo,
+    i.citta,
+    i.provincia,
+    AVG(rr.valutazione) AS valutazione_media,
+    COUNT(rr.idRecensioneRistorante) AS numero_recensioni
+FROM 
+    `food_delivery_db`.`ristorante` r
+JOIN 
+    `food_delivery_db`.`indirizzo` i ON r.idIndirizzo = i.idIndirizzo
+LEFT JOIN 
+    `food_delivery_db`.`recensione_ristorante` rr ON r.idRistorante = rr.idRistorante
+WHERE 
+    r.stato = 'attivo' 
+    AND r.tipoCucina LIKE '%Italiana%'
+GROUP BY 
+    r.idRistorante, r.nome, r.tipoCucina, r.orarioApertura, r.orarioChiusura, 
+    r.costoConsegnaBase, r.ordineMinimo, i.citta, i.provincia
+ORDER BY 
+    valutazione_media DESC, numero_recensioni DESC;
+\end{lstlisting}
+
+\subsection{Visualizzazione degli ordini di un utente}
+\begin{lstlisting}[caption=Query per visualizzare gli ordini di un utente]
+-- Query per visualizzare gli ordini di un utente con dettagli
+SELECT 
+    o.idOrdine,
+    o.dataOrdine,
+    r.nome AS nome_ristorante,
+    o.costoTotale,
+    so.nome AS stato_ordine,
+    GROUP_CONCAT(CONCAT(p.nome, ' (', d.quantita, ')') SEPARATOR ', ') AS prodotti,
+    o.dataConsegnaPrevista,
+    o.dataConsegnaEffettiva
+FROM 
+    `food_delivery_db`.`ordine` o
+JOIN 
+    `food_delivery_db`.`ristorante` r ON o.idRistorante = r.idRistorante
+JOIN 
+    `food_delivery_db`.`stato_ordine` so ON o.idStatoOrdine = so.idStatoOrdine
+JOIN 
+    `food_delivery_db`.`dettaglio_ordine` d ON o.idOrdine = d.idOrdine
+JOIN 
+    `food_delivery_db`.`prodotto` p ON d.idProdotto = p.idProdotto
+WHERE 
+    o.idUtente = 1  -- Sostituire con parametro
+GROUP BY 
+    o.idOrdine, o.dataOrdine, nome_ristorante, o.costoTotale, stato_ordine, 
+    o.dataConsegnaPrevista, o.dataConsegnaEffettiva
+ORDER BY 
+    o.dataOrdine DESC;
+\end{lstlisting}
+
+\section{Triggers}
+Per mantenere l'integrità dei dati e automatizzare alcune operazioni, sono stati implementati diversi trigger:
+
+\subsection{Trigger per notifiche automatiche su aggiornamento ordine}
+\begin{lstlisting}[caption=Trigger per inviare notifiche automatiche quando un ordine viene aggiornato]
+DELIMITER //
+CREATE TRIGGER after_ordine_update
+AFTER UPDATE ON `food_delivery_db`.`ordine`
+FOR EACH ROW
+BEGIN
+    DECLARE stato_nome VARCHAR(45);
+    
+    -- Ottieni il nome dello stato
+    SELECT nome INTO stato_nome FROM `food_delivery_db`.`stato_ordine` WHERE idStatoOrdine = NEW.idStatoOrdine;
+    
+    -- Se lo stato è cambiato, crea una notifica
+    IF OLD.idStatoOrdine <> NEW.idStatoOrdine THEN
+        INSERT INTO `food_delivery_db`.`notifica` 
+            (`titolo`, `messaggio`, `tipo`, `idUtente`, `idOrdine`)
+        VALUES 
+            (CONCAT('Aggiornamento Ordine #', NEW.idOrdine), 
+             CONCAT('Il tuo ordine è ora ', stato_nome), 
+             'ordine', 
+             NEW.idUtente, 
+             NEW.idOrdine);
+    END IF;
+END //
+DELIMITER ;
+\end{lstlisting}
+
+\subsection{Trigger per controllo disponibilità prodotti}
+\begin{lstlisting}[caption=Trigger per controllare la disponibilità dei prodotti prima di inserire un dettaglio ordine]
+DELIMITER //
+CREATE TRIGGER before_dettaglio_ordine_insert
+BEFORE INSERT ON `food_delivery_db`.`dettaglio_ordine`
+FOR EACH ROW
+BEGIN
+    DECLARE is_available TINYINT;
+    
+    -- Verifica se il prodotto è disponibile
+    SELECT disponibile INTO is_available 
+    FROM `food_delivery_db`.`prodotto` 
+    WHERE idProdotto = NEW.idProdotto;
+    
+    -- Se il prodotto non è disponibile, genera un errore
+    IF is_available = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Il prodotto non è disponibile al momento';
+    END IF;
+END //
+DELIMITER ;
+\end{lstlisting}
+
+\subsection{Trigger per aggiornamento automatico costo totale ordine}
+\begin{lstlisting}[caption=Trigger per aggiornare il totale dell'ordine dopo l'inserimento di un nuovo dettaglio]
+DELIMITER //
+CREATE TRIGGER after_dettaglio_ordine_insert
+AFTER INSERT ON `food_delivery_db`.`dettaglio_ordine`
+FOR EACH ROW
+BEGIN
+    DECLARE subtotale DECIMAL(8,2);
+    
+    -- Calcola il subtotale di questo dettaglio
+    SET subtotale = NEW.quantita * NEW.prezzoUnitario;
+    
+    -- Aggiorna il totale dell'ordine
+    UPDATE `food_delivery_db`.`ordine` 
+    SET costoTotale = costoTotale + subtotale
+    WHERE idOrdine = NEW.idOrdine;
+END //
+DELIMITER ;
+\end{lstlisting}
+
+\section{Viste}
+Per facilitare l'accesso ai dati più frequentemente richiesti, sono state create diverse viste:
+
+\subsection{Vista ristoranti con valutazioni}
+\begin{lstlisting}[caption=Vista per visualizzare i ristoranti con le loro valutazioni medie]
+CREATE VIEW `food_delivery_db`.`vista_ristoranti_valutazioni` AS
+SELECT 
+    r.idRistorante,
+    r.nome,
+    r.tipoCucina,
+    r.telefono,
+    i.citta,
+    i.provincia,
+    r.orarioApertura,
+    r.orarioChiusura,
+    r.giorniApertura,
+    r.costoConsegnaBase,
+    r.ordineMinimo,
+    COALESCE(AVG(rr.valutazione), 0) AS valutazione_media,
+    COUNT(rr.idRecensioneRistorante) AS numero_recensioni
+FROM 
+    `food_delivery_db`.`ristorante` r
+LEFT JOIN 
+    `food_delivery_db`.`recensione_ristorante` rr ON r.idRistorante = rr.idRistorante
+JOIN 
+    `food_delivery_db`.`indirizzo` i ON r.idIndirizzo = i.idIndirizzo
+WHERE 
+    r.stato = 'attivo'
+GROUP BY 
+    r.idRistorante, r.nome, r.tipoCucina, r.telefono, i.citta, i.provincia, 
+    r.orarioApertura, r.orarioChiusura, r.giorniApertura, r.costoConsegnaBase, r.ordineMinimo;
+\end{lstlisting}
+
+\subsection{Vista ordini completi}
+\begin{lstlisting}[caption=Vista per visualizzare gli ordini completi con dettagli]
+CREATE VIEW `food_delivery_db`.`vista_ordini_completi` AS
+SELECT 
+    o.idOrdine,
+    o.dataOrdine,
+    o.costoTotale,
+    o.costoConsegna,
+    o.ivaApplicata,
+    s.nome AS stato_ordine,
+    u.nome AS nome_utente,
+    u.cognome AS cognome_utente,
+    u.email AS email_utente,
+    r.nome AS nome_ristorante,
+    r.telefono AS telefono_ristorante,
+    i.via,
+    i.civico,
+    i.citta,
+    i.provincia,
+    i.cap,
+    CONCAT(rd.nome, ' ', rd.cognome) AS nome_rider,
+    rd.telefono AS telefono_rider,
+    o.dataConsegnaPrevista,
+    o.dataConsegnaEffettiva
+FROM 
+    `food_delivery_db`.`ordine` o
+JOIN 
+    `food_delivery_db`.`utente` u ON o.idUtente = u.idUtente
+JOIN 
+    `food_delivery_db`.`ristorante` r ON o.idRistorante = r.idRistorante
+JOIN 
+    `food_delivery_db`.`indirizzo` i ON o.idIndirizzoConsegna = i.idIndirizzo
+JOIN 
+    `food_delivery_db`.`stato_ordine` s ON o.idStatoOrdine = s.idStatoOrdine
+LEFT JOIN 
+    `food_delivery_db`.`rider` rd ON o.idRider = rd.idRider;
+\end{lstlisting}
+
+\section{Conclusioni}
+Il database progettato fornisce una solida base per un sistema di food delivery completo e scalabile. La struttura relazionale è stata disegnata per garantire l'integrità dei dati, ottimizzare le prestazioni per le operazioni più frequenti e facilitare l'estensibilità futura.
+
+I punti di forza del sistema includono:
+\begin{itemize}
+    \item Una chiara separazione delle responsabilità tra le diverse entità del dominio
+    \item Una gestione robusta degli ordini con un sistema di stati ben definito
+    \item Meccanismi automatici per garantire l'integrità dei dati tramite trigger
+    \item Procedure ottimizzate per le operazioni più frequenti
+    \item Viste preconfigurate per le query più complesse e ripetitive
+    \item Un sistema di notifiche integrato per tenere gli utenti informati
+\end{itemize}
+
+Sviluppi futuri potrebbero includere:
+\begin{itemize}
+    \item Implementazione di meccanismi di caching per migliorare ulteriormente le prestazioni
+    \item Aggiunta di funzionalità per la gestione di promozioni e sconti
+    \item Integrazione con sistemi esterni come servizi di mappatura e pagamenti
+    \item Implementazione di meccanismi di analisi dati per insight commerciali
+\end{itemize}
+
+\end{document}
